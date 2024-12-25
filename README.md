@@ -145,7 +145,7 @@ Visit our [API Documentation](https://hackstyx.github.io/portfolio-tracker/)
 - **Database**: [MySQL](https://www.mysql.com/) - Open-source relational database
 - **ORM**: [Sequelize](https://sequelize.org/) - Modern TypeScript and Node.js ORM
 - **Market Data**: [Finnhub](https://finnhub.io/) - Real-time RESTful APIs for stocks
-- **API Documentation**: OpenAPI/Swagger
+- **API Documentation**: [Github Pages](https://hackstyx.github.io/portfolio-tracker/)
 
 ### 🚀 DevOps & Infrastructure
 - **Frontend Hosting**: [Vercel](https://vercel.com/)
@@ -164,10 +164,10 @@ Visit our [API Documentation](https://hackstyx.github.io/portfolio-tracker/)
 ### 📦 Additional Tools
 - **Version Control**: Git & GitHub
 - **Code Quality**: ESLint & Prettier
-- **API Testing**: Postman
+- **API Testing**: Thunder Client
 - **Environment Variables**: dotenv
-- **Security**: CORS, Helmet
-- **Real-time Data**: WebSocket (planned)
+- **Security**: CORS
+- **Real-time Monitoring**: UpTimeRobot
 
 ## ⚠️ Limitations
 
