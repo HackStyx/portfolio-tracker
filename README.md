@@ -6,7 +6,7 @@
 [![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://portfolio-tracker-backend-y7ne.onrender.com/api)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Finnhub](https://img.shields.io/badge/Finnhub-1B1B1B?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMyA2aDJsMTUgMk0xNyA2djE0TTcgMTZoMTAiLz48L3N2Zz4=)](https://finnhub.io/)
@@ -41,7 +41,7 @@
 
 - Node.js 14+
 - npm or yarn
-- MySQL
+- Supabase account
 - Finnhub API Key (get one at [finnhub.io](https://finnhub.io/))
 
 ### Frontend Setup
@@ -73,15 +73,18 @@ npm install
 
 2. Configure `.env`:
 ```env
-DATABASE_URL=mysql://user:password@localhost:3306/portfolio_tracker
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
 PORT=5000
-NODE_ENV=development
 FINNHUB_API_KEY=your_finnhub_api_key
 ```
 
-3. Run migrations and start:
+3. Set up Supabase:
+   - Follow the instructions in `backend/SUPABASE_SETUP.md`
+
+4. Test connection and start:
 ```bash
-npm run migrate
+npm run init-db
 npm start
 ```
 
@@ -142,8 +145,7 @@ Visit our [API Documentation](https://hackstyx.github.io/portfolio-tracker/)
 ### 🛠 Backend
 - **Runtime**: [Node.js](https://nodejs.org/) - JavaScript runtime
 - **Framework**: [Express](https://expressjs.com/) - Web framework for Node.js
-- **Database**: [MySQL](https://www.mysql.com/) - Open-source relational database
-- **ORM**: [Sequelize](https://sequelize.org/) - Modern TypeScript and Node.js ORM
+- **Database**: [Supabase](https://supabase.com/) - Open source Firebase alternative
 - **Market Data**: [Finnhub](https://finnhub.io/) - Real-time RESTful APIs for stocks
 - **API Documentation**: [Github Pages](https://hackstyx.github.io/portfolio-tracker/)
 
@@ -156,8 +158,8 @@ Visit our [API Documentation](https://hackstyx.github.io/portfolio-tracker/)
   - Containerized deployment
   - Automatic scaling
   - Built-in monitoring
-- **Database Hosting**: [Railway](https://railway.app/)
-  - Managed MySQL database
+- **Database Hosting**: [Supabase](https://supabase.com/)
+  - PostgreSQL database
   - Automated backups
   - High availability
 
