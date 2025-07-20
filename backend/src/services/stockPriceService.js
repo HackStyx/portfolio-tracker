@@ -1,6 +1,6 @@
 const axios = require('axios');
 const Stock = require('../models/Stock');
-const { Op } = require('sequelize');
+const supabase = require('../config/supabase');
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
@@ -51,14 +51,21 @@ const getHistoricalData = async (ticker) => {
 const updateStockPrices = async () => {
   try {
     console.log('Starting stock price update...');
-    const stocks = await Stock.findAll({
-      where: {
-        [Op.or]: [
-          { shares: { [Op.gt]: 0 } },
-          { is_in_watchlist: true }
-        ]
-      }
-    });
+    // Query stocks with shares > 0 or in watchlist
+    const { data: stocks, error } = await supabase
+      .from('stocks')
+      .select('*')
+      .or('shares.gt.0,is_in_watchlist.eq.true');
+
+    if (error) {
+      console.error('Error fetching stocks for update:', error);
+      return;
+    }
+
+    if (!stocks || stocks.length === 0) {
+      console.log('No stocks found in database. Skipping price updates.');
+      return;
+    }
 
     console.log(`Found ${stocks.length} stocks to update`);
 
@@ -66,11 +73,20 @@ const updateStockPrices = async () => {
       try {
         const quote = await getStockQuote(stock.ticker);
         if (quote && quote.c > 0) {
-          await stock.update({
-            current_price: quote.c,
-            last_updated: new Date()
-          });
-          console.log(`Updated price for ${stock.ticker}: $${quote.c}`);
+          // Update stock price directly with Supabase
+          const { error: updateError } = await supabase
+            .from('stocks')
+            .update({
+              current_price: quote.c,
+              last_updated: new Date().toISOString()
+            })
+            .eq('id', stock.id);
+          
+          if (updateError) {
+            console.error(`Error updating ${stock.ticker}:`, updateError);
+          } else {
+            console.log(`Updated price for ${stock.ticker}: $${quote.c}`);
+          }
         } else {
           console.log(`Failed to get valid price for ${stock.ticker}`);
         }
