@@ -2,17 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AreaChart, Card, Title, Badge, TabGroup, TabList, Tab } from '@tremor/react';
 import { HiTrendingUp, HiTrendingDown, HiCurrencyDollar, HiChartPie, HiClock } from 'react-icons/hi';
-import axios from 'axios';
 import PortfolioAnalytics from '../components/dashboard/PortfolioAnalytics';
 import StockDetail from '../components/dashboard/StockDetail';
+import api from '../services/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://portfolio-tracker-backend-y7ne.onrender.com/api';
 
-// Create axios instance with base URL
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000
-});
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -128,7 +122,7 @@ export default function Dashboard({ theme: propTheme }) {
 
   const fetchStocks = async () => {
     try {
-      console.log('Fetching stocks from:', API_BASE_URL);
+      console.log('Fetching stocks from API');
       const response = await api.get('/stocks');
       console.log('Stocks fetched successfully:', response.data);
       setStocks(response.data);
@@ -481,19 +475,67 @@ export default function Dashboard({ theme: propTheme }) {
           <div className="flex justify-between items-center mb-4">
             <TabGroup 
               defaultIndex={1}
-              className="mb-4"
+              className="mb-4 [&>div]:border-none"
               onIndexChange={(index) => {
                 const periods = ['1D', '1W', '1M', '3M', '1Y', 'ALL'];
                 setSelectedPeriod(periods[index]);
               }}
             >
               <TabList className={theme === 'dark' ? 'text-white' : ''}>
-                <Tab className={theme === 'dark' ? 'text-white hover:text-blue-400' : ''}>1D</Tab>
-                <Tab className={theme === 'dark' ? 'text-white hover:text-blue-400' : ''}>1W</Tab>
-                <Tab className={theme === 'dark' ? 'text-white hover:text-blue-400' : ''}>1M</Tab>
-                <Tab className={theme === 'dark' ? 'text-white hover:text-blue-400' : ''}>3M</Tab>
-                <Tab className={theme === 'dark' ? 'text-white hover:text-blue-400' : ''}>1Y</Tab>
-                <Tab className={theme === 'dark' ? 'text-white hover:text-blue-400' : ''}>ALL</Tab>
+                <Tab className={`px-3 py-1 text-sm font-medium transition-all ${
+                  selectedPeriod === '1D'
+                    ? theme === 'dark' 
+                      ? 'text-blue-400 font-semibold' 
+                      : 'text-blue-600 font-semibold'
+                    : theme === 'dark'
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}>1D</Tab>
+                <Tab className={`px-3 py-1 text-sm font-medium transition-all ${
+                  selectedPeriod === '1W'
+                    ? theme === 'dark' 
+                      ? 'text-blue-400 font-semibold' 
+                      : 'text-blue-600 font-semibold'
+                    : theme === 'dark'
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}>1W</Tab>
+                <Tab className={`px-3 py-1 text-sm font-medium transition-all ${
+                  selectedPeriod === '1M'
+                    ? theme === 'dark' 
+                      ? 'text-blue-400 font-semibold' 
+                      : 'text-blue-600 font-semibold'
+                    : theme === 'dark'
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}>1M</Tab>
+                <Tab className={`px-3 py-1 text-sm font-medium transition-all ${
+                  selectedPeriod === '3M'
+                    ? theme === 'dark' 
+                      ? 'text-blue-400 font-semibold' 
+                      : 'text-blue-600 font-semibold'
+                    : theme === 'dark'
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}>3M</Tab>
+                <Tab className={`px-3 py-1 text-sm font-medium transition-all ${
+                  selectedPeriod === '1Y'
+                    ? theme === 'dark' 
+                      ? 'text-blue-400 font-semibold' 
+                      : 'text-blue-600 font-semibold'
+                    : theme === 'dark'
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}>1Y</Tab>
+                <Tab className={`px-3 py-1 text-sm font-medium transition-all ${
+                  selectedPeriod === 'ALL'
+                    ? theme === 'dark' 
+                      ? 'text-blue-400 font-semibold' 
+                      : 'text-blue-600 font-semibold'
+                    : theme === 'dark'
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}>ALL</Tab>
               </TabList>
             </TabGroup>
             <div className={`flex flex-col items-end ${
