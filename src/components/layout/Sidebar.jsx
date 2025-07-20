@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import { 
   HiHome, 
   HiChartBar, 
   HiStar,
+  HiNewspaper,
+  HiCalendar,
   HiChevronLeft,
   HiChevronRight,
   HiSun,
@@ -33,134 +36,41 @@ const LoadingOverlay = ({ message }) => (
 
 export default function Sidebar({ theme }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
 
   const navItems = [
-    { path: '/', icon: HiHome, label: 'Dashboard' },
+    { path: '/dashboard', icon: HiHome, label: 'Dashboard' },
     { path: '/portfolio', icon: HiChartBar, label: 'Portfolio' },
-    { path: '/watchlist', icon: HiStar, label: 'Watchlist' }
+    { path: '/watchlist', icon: HiStar, label: 'Watchlist' },
+    { path: '/news', icon: HiNewspaper, label: 'News' },
+    { path: '/calendar', icon: HiCalendar, label: 'Calendar' }
   ];
 
-  const randomStocks = [
-    { name: 'Apple Inc.', ticker: 'AAPL', buy_price: 175.50, targetPrice: 200.00, current_price: 175.50 },
-    { name: 'Microsoft Corporation', ticker: 'MSFT', buy_price: 340.20, targetPrice: 380.00, current_price: 340.20 },
-    { name: 'Amazon.com Inc.', ticker: 'AMZN', buy_price: 125.30, targetPrice: 150.00, current_price: 125.30 },
-    { name: 'Alphabet Inc.', ticker: 'GOOGL', buy_price: 135.60, targetPrice: 160.00, current_price: 135.60 },
-    { name: 'NVIDIA Corporation', ticker: 'NVDA', buy_price: 450.80, targetPrice: 500.00, current_price: 450.80 },
-    { name: 'Meta Platforms Inc.', ticker: 'META', buy_price: 290.40, targetPrice: 320.00, current_price: 290.40 },
-    { name: 'Tesla Inc.', ticker: 'TSLA', buy_price: 240.50, targetPrice: 280.00, current_price: 240.50 },
-    { name: 'Netflix Inc.', ticker: 'NFLX', buy_price: 385.70, targetPrice: 420.00, current_price: 385.70 },
-    { name: 'Adobe Inc.', ticker: 'ADBE', buy_price: 420.30, targetPrice: 460.00, current_price: 420.30 },
-    { name: 'Salesforce Inc.', ticker: 'CRM', buy_price: 210.90, targetPrice: 240.00, current_price: 210.90 }
-  ];
+
 
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout? This will reset your portfolio..')) {
+    if (window.confirm('Are you sure you want to logout?')) {
       try {
         setIsLoading(true);
-        setLoadingMessage('Resetting your portfolio...');
-
-        // Get all current stocks
-        const portfolioResponse = await api.get('/stocks');
-        const portfolioStocks = portfolioResponse.data || [];
+        setLoadingMessage('Logging out...');
         
-        console.log('Current portfolio stocks:', portfolioStocks);
+        const { error } = await signOut();
+        if (error) {
+          throw error;
+        }
         
-        // Delete all current stocks if there are any
-        if (portfolioStocks.length > 0) {
-          await Promise.all(portfolioStocks.map(stock => 
-            api.delete(`/stocks/${stock.id}`)
-          ));
-          console.log('Successfully deleted all portfolio stocks');
-        }
-
-        // Shuffle and pick 5 random stocks
-        const shuffled = [...randomStocks].sort(() => 0.5 - Math.random());
-        const selectedStocks = shuffled.slice(0, 5);
-        console.log('Selected stocks to add:', selectedStocks);
-
-        // Keep track of successful and failed additions
-        const results = {
-          successful: [],
-          failed: []
-        };
-
-        // Add the random stocks one by one
-        for (const stock of selectedStocks) {
-          try {
-            console.log('Adding stock:', stock);
-            
-            // Add to portfolio with all required fields
-            const portfolioStock = {
-              name: stock.name,
-              ticker: stock.ticker,
-              shares: 1,
-              buy_price: parseFloat(stock.buy_price),
-              current_price: parseFloat(stock.current_price),
-              target_price: parseFloat(stock.targetPrice)
-            };
-            
-            // Add to portfolio
-            const response = await api.post('/stocks', portfolioStock);
-            console.log(`Successfully added stock ${stock.ticker}`);
-            results.successful.push(stock.ticker);
-          } catch (error) {
-            console.error(`Error adding stock ${stock.ticker}:`, error);
-            results.failed.push(stock.ticker);
-            
-            // If a stock fails, try to add a different one from our list
-            const remainingStocks = randomStocks.filter(s => 
-              !selectedStocks.includes(s) && 
-              !results.successful.includes(s.ticker) && 
-              !results.failed.includes(s.ticker)
-            );
-            
-            if (remainingStocks.length > 0) {
-              const replacementStock = remainingStocks[0];
-              console.log(`Trying replacement stock: ${replacementStock.ticker}`);
-              try {
-                const portfolioStock = {
-                  name: replacementStock.name,
-                  ticker: replacementStock.ticker,
-                  shares: 1,
-                  buy_price: parseFloat(replacementStock.buy_price),
-                  current_price: parseFloat(replacementStock.current_price),
-                  target_price: parseFloat(replacementStock.targetPrice)
-                };
-                
-                const response = await api.post('/stocks', portfolioStock);
-                console.log(`Successfully added replacement stock ${replacementStock.ticker}`);
-                results.successful.push(replacementStock.ticker);
-              } catch (retryError) {
-                console.error(`Error adding replacement stock ${replacementStock.ticker}:`, retryError);
-                results.failed.push(replacementStock.ticker);
-              }
-            }
-          }
-        }
-
-        // Check if we have 5 successful additions
-        if (results.successful.length === 5) {
-          console.log('Successfully added all 5 stocks:', results.successful);
-        } else {
-          console.warn(`Only added ${results.successful.length} stocks successfully:`, results.successful);
-          console.warn('Failed stocks:', results.failed);
-          throw new Error(`Could only add ${results.successful.length} out of 5 stocks`);
-        }
-
-        // Small delay before refreshing
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Refresh the page
-        window.location.reload();
+        // Navigate to homepage
+        navigate('/');
       } catch (error) {
         console.error('Error during logout:', error);
         setLoadingMessage('Error occurred. Please try again.');
         await new Promise(resolve => setTimeout(resolve, 2000));
         setIsLoading(false);
-        alert(error.message || 'Failed to logout. Please try again.');
+        alert('Failed to logout. Please try again.');
       }
     }
   };

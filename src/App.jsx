@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidebar from './components/layout/Sidebar';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Homepage from './pages/Homepage';
+import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Watchlist from './pages/Watchlist';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import StockDetail from './pages/StockDetail';
+import News from './pages/News';
+import MarketCalendar from './pages/MarketCalendar';
 
 export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -39,17 +47,71 @@ export default function App() {
   }, [theme]);
 
   return (
-    <Router>
-      <div className={`flex h-screen ${theme === 'dark' ? 'bg-[#171717]' : 'bg-white'}`}>
-        <Sidebar theme={theme} />
-        <div className="flex-1 overflow-auto">
-          <Routes>
-            <Route path="/" element={<Dashboard theme={theme} />} />
-            <Route path="/portfolio" element={<Portfolio theme={theme} />} />
-            <Route path="/watchlist" element={<Watchlist theme={theme} />} />
-          </Routes>
-        </div>
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Homepage />} />
+          
+          {/* Protected dashboard routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <DashboardLayout theme={theme}>
+                <Dashboard theme={theme} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/portfolio" element={
+            <ProtectedRoute>
+              <DashboardLayout theme={theme}>
+                <Portfolio theme={theme} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/watchlist" element={
+            <ProtectedRoute>
+              <DashboardLayout theme={theme}>
+                <Watchlist theme={theme} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <DashboardLayout theme={theme}>
+                <Profile theme={theme} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <DashboardLayout theme={theme}>
+                <Settings theme={theme} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/stock/:id" element={
+            <ProtectedRoute>
+              <DashboardLayout theme={theme}>
+                <StockDetail theme={theme} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/news" element={
+            <ProtectedRoute>
+              <DashboardLayout theme={theme}>
+                <News theme={theme} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/calendar" element={
+            <ProtectedRoute>
+              <DashboardLayout theme={theme}>
+                <MarketCalendar theme={theme} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
