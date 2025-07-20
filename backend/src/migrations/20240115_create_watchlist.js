@@ -1,3 +1,8 @@
+// This migration file is for Sequelize and is not used with Supabase
+// For Supabase, tables are created through the Supabase dashboard or SQL migrations
+// See supabase-schema.sql for the actual table creation
+
+/*
 const { DataTypes } = require('sequelize');
 
 module.exports = {
@@ -43,5 +48,16 @@ module.exports = {
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('watchlists');
+  }
+};
+*/
+
+// Supabase migration placeholder
+module.exports = {
+  up: async () => {
+    console.log('Migration not needed for Supabase - tables are managed separately');
+  },
+  down: async () => {
+    console.log('Migration not needed for Supabase - tables are managed separately');
   }
 }; 

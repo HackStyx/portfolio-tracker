@@ -1,34 +1,13 @@
-const Stock = require('../models/Stock');
-const sequelize = require('../config/database');
+const supabase = require('../config/supabase');
 
 async function initializeDatabase() {
   try {
-    // Sync all models with the database
-    await sequelize.sync({ force: true });
-    console.log('Database tables created successfully');
-
-    // Create some initial stocks for testing
-    await Stock.bulkCreate([
-      {
-        name: 'Apple Inc.',
-        ticker: 'AAPL',
-        shares: 10,
-        buy_price: 150.00,
-        current_price: 155.00,
-        target_price: 180.00,
-        is_in_watchlist: false
-      },
-      {
-        name: 'Microsoft Corporation',
-        ticker: 'MSFT',
-        shares: 5,
-        buy_price: 280.00,
-        current_price: 290.00,
-        target_price: 320.00,
-        is_in_watchlist: false
-      }
-    ]);
-    console.log('Initial stocks created successfully');
+    console.log('Database initialization not needed for Supabase - tables are managed separately');
+    
+    // Note: For Supabase, tables are created through the Supabase dashboard or SQL migrations
+    // This function is kept for compatibility but doesn't need to do anything
+    
+    console.log('Database initialization completed');
 
   } catch (error) {
     console.error('Error initializing database:', error);

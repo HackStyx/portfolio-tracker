@@ -1,42 +1,29 @@
-const { Sequelize } = require('sequelize');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
-let sequelize;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-if (process.env.DATABASE_URL) {
-  // Production configuration for Railway
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'mysql',
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
-    },
-    logging: false
-  });
-} else {
-  // Local configuration
-  sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
-    host: process.env.DB_HOST,
-    dialect: 'mysql',
-    logging: console.log,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
-  });
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.warn('SUPABASE_URL or SUPABASE_KEY environment variables are not set. Some features will be limited.');
 }
 
+const supabase = createClient(
+  SUPABASE_URL || 'https://example.supabase.co',
+  SUPABASE_KEY || 'demo-key'
+);
+
 // Test the connection
-sequelize.authenticate()
-  .then(() => {
-    console.log('Database connection has been established successfully.');
+supabase.from('stocks').select('count', { count: 'exact', head: true })
+  .then(({ count, error }) => {
+    if (error) {
+      console.error('Unable to connect to Supabase:', error);
+    } else {
+      console.log('Supabase connection has been established successfully.');
+    }
   })
   .catch(err => {
-    console.error('Unable to connect to the database:', err);
+    console.error('Unable to connect to Supabase:', err);
   });
 
-module.exports = sequelize; 
+module.exports = supabase; 

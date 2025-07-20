@@ -1,53 +1,92 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const supabase = require('../config/supabase');
 
-const Stock = sequelize.define('Stock', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
+const Stock = {
+  async findAll(options = {}) {
+    let query = supabase.from('stocks').select('*');
+    
+    if (options.where) {
+      // Handle where clauses
+      Object.entries(options.where).forEach(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          // Handle operators like Op.gt
+          if (value.hasOwnProperty('gt')) {
+            query = query.gt(key, value.gt);
+          } else if (value.hasOwnProperty('lt')) {
+            query = query.lt(key, value.lt);
+          }
+          // Add more operators as needed
+        } else {
+          // Simple equality
+          query = query.eq(key, value);
+        }
+      });
+    }
+
+    if (options.order) {
+      // Handle order clauses - Supabase uses orderBy instead of order
+      options.order.forEach(([column, direction]) => {
+        query = query.order(column, { ascending: direction === 'ASC' });
+      });
+    }
+
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data || [];
   },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false
+
+  async findByPk(id) {
+    const { data, error } = await supabase
+      .from('stocks')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data ? {
+      ...data,
+      update: async (values) => {
+        const { data: updatedData, error: updateError } = await supabase
+          .from('stocks')
+          .update(values)
+          .eq('id', id)
+          .select()
+          .single();
+        
+        if (updateError) throw updateError;
+        return updatedData;
+      },
+      destroy: async () => {
+        const { error: deleteError } = await supabase
+          .from('stocks')
+          .delete()
+          .eq('id', id);
+        
+        if (deleteError) throw deleteError;
+        return true;
+      }
+    } : null;
   },
-  ticker: {
-    type: DataTypes.STRING,
-    allowNull: false
+
+  async create(values) {
+    const { data, error } = await supabase
+      .from('stocks')
+      .insert([values])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   },
-  shares: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    defaultValue: 0
-  },
-  buy_price: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    defaultValue: 0
-  },
-  current_price: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    defaultValue: 0
-  },
-  target_price: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    defaultValue: 0
-  },
-  is_in_watchlist: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false
-  },
-  last_updated: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
+
+  async count() {
+    const { count, error } = await supabase
+      .from('stocks')
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) throw error;
+    return count || 0;
   }
-}, {
-  timestamps: true,
-  tableName: 'stocks'
-});
+};
 
 module.exports = Stock; 
