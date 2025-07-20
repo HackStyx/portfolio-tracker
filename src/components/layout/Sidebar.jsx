@@ -16,7 +16,7 @@ import {
   HiLogout
 } from 'react-icons/hi';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://portfolio-tracker-backend-y7ne.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Create axios instance with base URL
 const api = axios.create({

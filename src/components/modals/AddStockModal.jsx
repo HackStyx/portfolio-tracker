@@ -5,7 +5,7 @@ import { TextInput, NumberInput, Button } from '@tremor/react';
 import axios from 'axios';
 
 // Get API URL from environment variable, fallback to production URL if not set
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://portfolio-tracker-backend-y7ne.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Create axios instance with base URL
 const api = axios.create({
