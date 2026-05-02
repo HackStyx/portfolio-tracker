@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { HiOutlineNewspaper, HiOutlineClock, HiOutlineUser, HiOutlineTrendingUp, HiOutlineTrendingDown, HiOutlineEye, HiOutlineRefresh } from 'react-icons/hi';
+import { 
+  HiOutlineNewspaper, HiOutlineClock, HiOutlineUser, HiOutlineTrendingUp, 
+  HiOutlineTrendingDown, HiOutlineEye, HiOutlineRefresh, HiOutlineBookmark,
+  HiOutlineShare, HiOutlineExternalLink, HiBookmark, HiHeart, HiOutlineHeart,
+  HiOutlineFilter, HiOutlineSearch, HiOutlineChevronDown
+} from 'react-icons/hi';
 import axios from 'axios';
 
 const News = () => {
@@ -10,26 +15,25 @@ const News = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [newsArticles, setNewsArticles] = useState([]);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [savedArticles, setSavedArticles] = useState([]);
+  const [likedArticles, setLikedArticles] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState('latest');
 
-  // Initialize theme and listen for changes
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+  // Initialize theme
   useEffect(() => {
     const handleThemeChange = (e) => {
       const newTheme = e.detail?.theme || e.detail || localStorage.getItem('theme') || 'light';
-      console.log('News: Theme change detected:', newTheme);
       setTheme(newTheme);
       document.documentElement.classList.toggle('dark', newTheme === 'dark');
     };
 
-    // Set initial theme
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
 
-    // Listen to theme change events
     window.addEventListener('themeChange', handleThemeChange);
     window.addEventListener('storage', () => {
       const storedTheme = localStorage.getItem('theme') || 'light';
@@ -44,230 +48,107 @@ const News = () => {
     };
   }, []);
 
-  // Fallback news data
-  const fallbackNews = [
-    {
-      id: 1,
-      title: "Federal Reserve Signals Potential Rate Cuts in 2024",
-      category: "Market News",
-      date: "Jan 20, 2024",
-      author: "Financial Times",
-      readTime: "5 min read",
-      image: "from-blue-500 to-purple-600",
-      summary: "The Federal Reserve's latest meeting minutes indicate a more dovish stance, with officials discussing potential interest rate reductions in the coming months.",
-      trending: "up",
-      views: "2.4k",
-      url: "#"
-    },
-    {
-      id: 2,
-      title: "Tech Giants Report Strong Q4 Earnings",
-      category: "Earnings",
-      date: "Jan 19, 2024",
-      author: "Reuters",
-      readTime: "4 min read",
-      image: "from-green-500 to-blue-600",
-      summary: "Major technology companies exceeded analyst expectations in their fourth-quarter earnings reports, driven by strong cloud services and AI investments.",
-      trending: "up",
-      views: "1.8k",
-      url: "#"
-    },
-    {
-      id: 3,
-      title: "Oil Prices Volatile Amid Geopolitical Tensions",
-      category: "Commodities",
-      date: "Jan 18, 2024",
-      author: "Bloomberg",
-      readTime: "6 min read",
-      image: "from-yellow-500 to-orange-600",
-      summary: "Crude oil prices experienced significant volatility as tensions in key oil-producing regions intensified, affecting global energy markets.",
-      trending: "down",
-      views: "1.2k",
-      url: "#"
-    },
-    {
-      id: 4,
-      title: "Cryptocurrency Market Shows Signs of Recovery",
-      category: "Crypto",
-      date: "Jan 17, 2024",
-      author: "CoinDesk",
-      readTime: "7 min read",
-      image: "from-purple-500 to-pink-600",
-      summary: "Bitcoin and other major cryptocurrencies have shown strong recovery signals, with institutional adoption continuing to grow.",
-      trending: "up",
-      views: "3.1k",
-      url: "#"
-    },
-    {
-      id: 5,
-      title: "Housing Market Shows Mixed Signals",
-      category: "Real Estate",
-      date: "Jan 16, 2024",
-      author: "Wall Street Journal",
-      readTime: "5 min read",
-      image: "from-indigo-500 to-purple-600",
-      summary: "Recent housing market data reveals a complex picture, with some regions showing strength while others face challenges from high interest rates.",
-      trending: "down",
-      views: "956",
-      url: "#"
-    },
-    {
-      id: 6,
-      title: "ESG Investing Continues to Gain Momentum",
-      category: "ESG",
-      date: "Jan 15, 2024",
-      author: "Financial News",
-      readTime: "6 min read",
-      image: "from-teal-500 to-green-600",
-      summary: "Environmental, Social, and Governance (ESG) investing strategies are attracting record inflows as investors prioritize sustainability and responsible business practices.",
-      trending: "up",
-      views: "1.5k",
-      url: "#"
-    }
-  ];
+  // Load saved/liked articles from localStorage
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('savedArticles') || '[]');
+    const liked = JSON.parse(localStorage.getItem('likedArticles') || '[]');
+    setSavedArticles(saved);
+    setLikedArticles(liked);
+  }, []);
 
-  // Fetch news from Finnhub API with pagination
-  const fetchNews = async (page = 1, append = false) => {
+  // Fetch news from backend
+  const fetchNews = async () => {
     try {
-      if (page === 1) {
-        setIsLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
+      setIsLoading(true);
       setError(null);
       
-      // Get Finnhub API key from environment variables
-      const FINNHUB_API_KEY = import.meta.env.VITE_FINNHUB_API_KEY;
+      console.log('🚀 Fetching news from backend...');
+      const response = await axios.get(`${API_BASE_URL}/news`);
       
-      console.log('🔍 Checking for Finnhub API key...');
-      console.log('API Key exists:', !!FINNHUB_API_KEY);
-      
-      if (!FINNHUB_API_KEY) {
-        console.warn('⚠️ Finnhub API key not found. Using fallback data.');
-        const paginatedFallback = paginateData(fallbackNews, page, 12);
-        setNewsArticles(paginatedFallback.articles);
-        setTotalPages(paginatedFallback.totalPages);
-        setHasMore(paginatedFallback.hasMore);
-        setLastUpdated(new Date());
-        setIsLoading(false);
-        setIsLoadingMore(false);
-        return;
-      }
-
-      console.log('🚀 Fetching news from Finnhub API...');
-
-      // Fetch general market news with pagination
-      const response = await axios.get(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}&minId=0`);
-      
-      console.log('📡 API Response received:', response.data?.length || 0, 'articles');
-      
-      if (response.data && Array.isArray(response.data)) {
-        console.log('✅ Transforming API data...');
-        // Transform the data to match our component structure
-        const transformedNews = response.data.map((article, index) => ({
-          id: article.id || index,
-          title: article.headline || 'No title available',
-          category: article.category || 'Market News',
-          date: new Date(article.datetime * 1000).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          }),
-          author: article.source || 'Financial News',
-          readTime: `${Math.max(1, Math.floor(article.headline?.length / 200))} min read`,
-          image: getRandomGradient(),
-          summary: article.summary || 'No summary available',
-          trending: Math.random() > 0.5 ? 'up' : 'down',
-          views: `${Math.floor(Math.random() * 5) + 1}k`,
-          url: article.url || '#'
-        }));
-        
-        const paginatedData = paginateData(transformedNews, page, 12);
-        
-        if (append) {
-          setNewsArticles(prev => [...prev, ...paginatedData.articles]);
-        } else {
-          setNewsArticles(paginatedData.articles);
-        }
-        
-        setTotalPages(paginatedData.totalPages);
-        setHasMore(paginatedData.hasMore);
-        setCurrentPage(page);
-        setLastUpdated(new Date());
-        console.log('🎉 Successfully loaded', paginatedData.articles.length, 'articles from Finnhub API (page', page, ')');
+      if (response.data && response.data.success) {
+        console.log('✅ Received', response.data.count, 'articles');
+        setNewsArticles(response.data.articles);
+        setLastUpdated(new Date(response.data.lastUpdated));
       } else {
-        throw new Error('Invalid response format from API');
+        throw new Error('Invalid response format');
       }
     } catch (err) {
       console.error('❌ Error fetching news:', err);
       setError(err.message || 'Failed to fetch news. Please try again later.');
-      // Use fallback data on error
-      console.log('🔄 Using fallback data due to error');
-      const paginatedFallback = paginateData(fallbackNews, page, 12);
-      setNewsArticles(paginatedFallback.articles);
-      setTotalPages(paginatedFallback.totalPages);
-      setHasMore(paginatedFallback.hasMore);
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
     }
   };
 
-  // Pagination helper function
-  const paginateData = (data, page, itemsPerPage) => {
-    const startIndex = (page - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const articles = data.slice(startIndex, endIndex);
-    const totalPages = Math.ceil(data.length / itemsPerPage);
-    const hasMore = page < totalPages;
-    
-    return {
-      articles,
-      totalPages,
-      hasMore,
-      currentPage: page
-    };
-  };
-
-  // Get random gradient for article images
-  const getRandomGradient = () => {
-    const gradients = [
-      'from-blue-500 to-purple-600',
-      'from-green-500 to-blue-600',
-      'from-yellow-500 to-orange-600',
-      'from-purple-500 to-pink-600',
-      'from-indigo-500 to-purple-600',
-      'from-teal-500 to-green-600',
-      'from-red-500 to-pink-600',
-      'from-orange-500 to-red-600'
-    ];
-    return gradients[Math.floor(Math.random() * gradients.length)];
-  };
-
-  // Initialize news data
   useEffect(() => {
-    if (newsArticles.length === 0) {
-      fetchNews();
-    }
+    fetchNews();
   }, []);
 
-  // Generate categories from news data
+  // Toggle saved article
+  const toggleSaved = (articleId) => {
+    const newSaved = savedArticles.includes(articleId)
+      ? savedArticles.filter(id => id !== articleId)
+      : [...savedArticles, articleId];
+    setSavedArticles(newSaved);
+    localStorage.setItem('savedArticles', JSON.stringify(newSaved));
+  };
+
+  // Toggle liked article
+  const toggleLiked = (articleId) => {
+    const newLiked = likedArticles.includes(articleId)
+      ? likedArticles.filter(id => id !== articleId)
+      : [...likedArticles, articleId];
+    setLikedArticles(newLiked);
+    localStorage.setItem('likedArticles', JSON.stringify(newLiked));
+  };
+
+  // Share article
+  const shareArticle = async (article) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: article.title,
+          text: article.summary,
+          url: article.url
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(article.url);
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  // Generate categories
   const generateCategories = () => {
     const categoryCounts = {};
     newsArticles.forEach(article => {
-      const category = article.category;
+      const category = article.category || 'General';
       categoryCounts[category] = (categoryCounts[category] || 0) + 1;
     });
     
     const categories = [
-      { id: 'all', name: 'All News', count: newsArticles.length }
+      { id: 'all', name: 'All News', count: newsArticles.length, icon: '📰' }
     ];
+    
+    const categoryIcons = {
+      'Market': '📈',
+      'Technology': '💻',
+      'Earnings': '💰',
+      'Crypto': '₿',
+      'General': '📋',
+      'Finance': '🏦',
+      'Forex': '💱'
+    };
     
     Object.entries(categoryCounts).forEach(([category, count]) => {
       categories.push({
         id: category.toLowerCase().replace(/\s+/g, '-'),
         name: category,
-        count: count
+        count: count,
+        icon: categoryIcons[category] || '📄'
       });
     });
     
@@ -276,308 +157,405 @@ const News = () => {
 
   const categories = generateCategories();
 
-  // Filter articles based on category and search
-  const filteredArticles = newsArticles.filter(article => {
-    const matchesCategory = selectedCategory === 'all' || 
-      article.category.toLowerCase().includes(selectedCategory.replace('-', ' '));
-    const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      article.summary.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Filter and sort articles
+  const getFilteredArticles = () => {
+    let filtered = newsArticles.filter(article => {
+      const matchesCategory = selectedCategory === 'all' || 
+        article.category?.toLowerCase().includes(selectedCategory.replace('-', ' '));
+      const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        article.summary?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
 
-  // Get category color styling
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case 'Market News':
-        return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20';
-      case 'Earnings':
-        return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20';
-      case 'Commodities':
-        return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20';
-      case 'Crypto':
-        return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/20';
-      case 'Real Estate':
-        return 'text-indigo-600 bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/20';
-      case 'ESG':
-        return 'text-teal-600 bg-teal-100 dark:text-teal-400 dark:bg-teal-900/20';
+    // Sort articles
+    switch (sortBy) {
+      case 'latest':
+        filtered.sort((a, b) => b.datetime - a.datetime);
+        break;
+      case 'trending':
+        filtered.sort((a, b) => parseFloat(b.views) - parseFloat(a.views));
+        break;
+      case 'saved':
+        filtered = filtered.filter(a => savedArticles.includes(a.id));
+        break;
       default:
-        return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900/20';
+        break;
     }
+
+    return filtered;
   };
 
-  // Handle refresh
-  const handleRefresh = () => {
-    setCurrentPage(1);
-    fetchNews(1, false);
-  };
+  const filteredArticles = getFilteredArticles();
 
-  // Handle load more
-  const handleLoadMore = () => {
-    if (hasMore && !isLoadingMore) {
-      fetchNews(currentPage + 1, true);
-    }
+  // Get category color
+  const getCategoryColor = (category) => {
+    const colors = {
+      'Market': 'blue',
+      'Technology': 'purple',
+      'Earnings': 'green',
+      'Crypto': 'orange',
+      'General': 'gray',
+      'Finance': 'indigo',
+      'Forex': 'teal'
+    };
+    const color = colors[category] || 'gray';
+    return `text-${color}-600 bg-${color}-100 dark:text-${color}-400 dark:bg-${color}-900/20`;
   };
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#171717] text-white' : 'bg-white text-gray-900'}`}>
-      {/* Header */}
-      <div className={`sticky top-0 z-40 ${theme === 'dark' ? 'bg-[#171717] border-b border-gray-800' : 'bg-white border-b border-gray-200'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                <HiOutlineNewspaper className={`w-6 h-6 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#0f0f0f]' : 'bg-gray-50'}`}>
+      {/* Hero Header */}
+      <div className={`${theme === 'dark' ? 'bg-gradient-to-r from-blue-900/50 to-purple-900/50' : 'bg-gradient-to-r from-blue-600 to-purple-600'} shadow-2xl`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="p-4 bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl">
+                <HiOutlineNewspaper className="w-12 h-12 text-white" />
               </div>
               <div>
-                <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <h1 className="text-4xl font-bold text-white mb-2">
                   Financial News
                 </h1>
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Stay updated with the latest market insights
+                <p className="text-blue-100 text-lg">
+                  Real-time market insights from multiple sources
                 </p>
-              </div>
-            </div>
-            
-            {/* Search Bar */}
-            <div className="flex-1 max-w-md ml-8">
-              <div className={`relative ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}>
-                <input
-                  type="text"
-                  placeholder="Search news..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2 bg-transparent border-0 focus:outline-none focus:ring-0 ${
-                    theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'
-                  }`}
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
+                {lastUpdated && (
+                  <div className="flex items-center mt-2 space-x-2 text-sm text-blue-200">
+                    <HiOutlineClock className="w-4 h-4" />
+                    <span>Updated {lastUpdated.toLocaleTimeString()}</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Refresh Button and Last Updated */}
-            <div className="flex items-center space-x-4">
-              {lastUpdated && (
-                <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Last updated: {lastUpdated.toLocaleTimeString()}
-                </div>
-              )}
-              <button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  isLoading
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:scale-105'
-                } ${
-                  theme === 'dark'
-                    ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
-                }`}
-                title="Refresh news"
-              >
-                <HiOutlineRefresh className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-              </button>
+            <button
+              onClick={fetchNews}
+              disabled={isLoading}
+              className={`px-6 py-3 bg-white/20 backdrop-blur-lg text-white rounded-xl font-medium transition-all duration-200 hover:bg-white/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg`}
+            >
+              <HiOutlineRefresh className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mt-8">
+            <div className="relative max-w-2xl">
+              <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search articles, topics, companies..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full pl-12 pr-4 py-4 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all`}
+              />
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Filters & Sort */}
+        <div className="flex flex-wrap items-center justify-between mb-8 gap-4">
+          {/* Categories */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+                  selectedCategory === category.id
+                    ? 'bg-blue-600 text-white shadow-lg scale-105'
+                    : theme === 'dark'
+                      ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      : 'bg-white text-gray-700 hover:bg-gray-100 shadow'
+                }`}
+              >
+                <span>{category.icon}</span>
+                <span>{category.name}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  selectedCategory === category.id
+                    ? 'bg-white/20'
+                    : theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                }`}>
+                  {category.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Sort */}
+          <div className="flex items-center space-x-2">
+            <HiOutlineFilter className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={`px-4 py-2 rounded-xl font-medium cursor-pointer transition-all ${
+                theme === 'dark'
+                  ? 'bg-gray-800 text-gray-300 border-gray-700'
+                  : 'bg-white text-gray-700 border-gray-300 shadow'
+              } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            >
+              <option value="latest">Latest First</option>
+              <option value="trending">Most Viewed</option>
+              <option value="saved">Saved Only</option>
+            </select>
+          </div>
+        </div>
+
         {/* Loading State */}
         {isLoading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              Loading latest news...
+          <div className="text-center py-16">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mb-4"></div>
+            <h3 className={`text-2xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Loading amazing news...
             </h3>
             <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              Fetching the most recent financial news
+              Aggregating from multiple sources with beautiful images
             </p>
           </div>
         )}
 
         {/* Error State */}
         {error && !isLoading && (
-          <div className="text-center py-12">
-            <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-              theme === 'dark' ? 'bg-red-900/20' : 'bg-red-100'
-            }`}>
+          <div className={`text-center py-12 ${theme === 'dark' ? 'bg-red-900/20' : 'bg-red-50'} rounded-2xl`}>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-red-100 dark:bg-red-900/30">
               <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              API Error - Using Fallback Data
+              Oops! Something went wrong
             </h3>
             <p className={`mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
               {error}
             </p>
             <button
               onClick={fetchNews}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                theme === 'dark'
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
             >
               Try Again
             </button>
           </div>
         )}
 
-        {/* Categories */}
-        {!isLoading && (
-          <div className="mb-8">
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                    selectedCategory === category.id
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : theme === 'dark'
-                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                  }`}
-                >
-                  {category.name} ({category.count})
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* News Grid */}
-        {!isLoading && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredArticles.map((article, index) => (
-            <div
-              key={article.id}
-              className={`group cursor-pointer ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg border ${
-                theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-              } overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}
-              onClick={() => window.open(article.url, '_blank')}
-            >
-              {/* Image */}
-              <div className={`h-48 bg-gradient-to-br ${article.image} relative overflow-hidden`}>
-                <div className="absolute inset-0 bg-black/20"></div>
-                <div className="absolute top-4 left-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(article.category)}`}>
-                    {article.category}
-                  </span>
-                </div>
-                <div className="absolute top-4 right-4 flex items-center space-x-2">
-                  {article.trending === 'up' ? (
-                    <HiOutlineTrendingUp className="w-5 h-5 text-green-400" />
+        {/* News Grid - Modern Card Design */}
+        {!isLoading && filteredArticles.length > 0 && (
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {filteredArticles.map((article) => (
+              <article
+                key={article.id}
+                className={`group ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'} rounded-2xl shadow-xl border ${
+                  theme === 'dark' ? 'border-gray-700' : 'border-gray-100'
+                } overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 backdrop-blur-sm`}
+              >
+                {/* Image */}
+                <div className="relative h-56 overflow-hidden">
+                  {article.imageData?.url ? (
+                    <img
+                      src={article.imageData.url}
+                      alt={article.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      loading="lazy"
+                    />
                   ) : (
-                    <HiOutlineTrendingDown className="w-5 h-5 text-red-400" />
+                    <div className={`w-full h-full bg-gradient-to-br from-blue-500 to-purple-600`}></div>
                   )}
-                  <span className={`text-xs font-medium ${
-                    article.trending === 'up' ? 'text-green-400' : 'text-red-400'
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+                  {/* Category Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 backdrop-blur-md bg-white/20 text-white rounded-full text-xs font-semibold border border-white/30">
+                      {article.category}
+                    </span>
+                  </div>
+
+                  {/* Trending Badge */}
+                  <div className="absolute top-4 right-4 flex items-center space-x-1 backdrop-blur-md bg-white/20 px-2 py-1 rounded-full border border-white/30">
+                    {article.trending === 'up' ? (
+                      <HiOutlineTrendingUp className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <HiOutlineTrendingDown className="w-4 h-4 text-red-400" />
+                    )}
+                    <span className={`text-xs font-semibold ${
+                      article.trending === 'up' ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {article.trending === 'up' ? 'Hot' : 'Cool'}
+                    </span>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="absolute bottom-4 right-4 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleLiked(article.id);
+                      }}
+                      className="p-2 backdrop-blur-md bg-white/20 hover:bg-white/30 rounded-full border border-white/30 transition-all"
+                    >
+                      {likedArticles.includes(article.id) ? (
+                        <HiHeart className="w-5 h-5 text-red-400" />
+                      ) : (
+                        <HiOutlineHeart className="w-5 h-5 text-white" />
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSaved(article.id);
+                      }}
+                      className="p-2 backdrop-blur-md bg-white/20 hover:bg-white/30 rounded-full border border-white/30 transition-all"
+                    >
+                      {savedArticles.includes(article.id) ? (
+                        <HiBookmark className="w-5 h-5 text-yellow-400" />
+                      ) : (
+                        <HiOutlineBookmark className="w-5 h-5 text-white" />
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        shareArticle(article);
+                      }}
+                      className="p-2 backdrop-blur-md bg-white/20 hover:bg-white/30 rounded-full border border-white/30 transition-all"
+                    >
+                      <HiOutlineShare className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                  <h3 
+                    onClick={() => window.open(article.url, '_blank')}
+                    className={`text-xl font-bold mb-3 line-clamp-2 cursor-pointer group-hover:text-blue-600 transition-colors ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}
+                  >
+                    {article.title}
+                  </h3>
+
+                  <p className={`mb-4 line-clamp-3 text-sm leading-relaxed ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                   }`}>
-                    {article.trending === 'up' ? 'Trending' : 'Declining'}
-                  </span>
-                </div>
-              </div>
+                    {article.summary || 'Read the full article for more details...'}
+                  </p>
 
-              {/* Content */}
-              <div className="p-6">
-                <h3 className={`text-xl font-bold mb-3 group-hover:text-blue-600 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
-                  {article.title}
-                </h3>
-                <p className={`mb-4 line-clamp-3 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {article.summary}
-                </p>
-
-                {/* Meta */}
-                <div className="flex items-center justify-between text-sm">
-                  <div className={`flex items-center space-x-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <div className="flex items-center space-x-1">
-                      <HiOutlineUser className="w-4 h-4" />
-                      <span>{article.author}</span>
+                  {/* Sentiment (if available) */}
+                  {article.sentiment && (
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-3 ${
+                      article.sentiment === 'Bullish' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                      article.sentiment === 'Bearish' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
+                      Sentiment: {article.sentiment}
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <HiOutlineClock className="w-4 h-4" />
-                      <span>{article.readTime}</span>
+                  )}
+
+                  {/* Meta Info */}
+                  <div className="flex items-center justify-between text-sm border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                    <div className={`flex items-center space-x-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <div className="flex items-center space-x-1">
+                        <HiOutlineUser className="w-4 h-4" />
+                        <span className="font-medium">{article.source}</span>
+                      </div>
+                      <span>•</span>
+                      <div className="flex items-center space-x-1">
+                        <HiOutlineClock className="w-4 h-4" />
+                        <span>{article.readTime}</span>
+                      </div>
+                    </div>
+                    <div className={`flex items-center space-x-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <HiOutlineEye className="w-4 h-4" />
+                      <span className="font-medium">{article.views}</span>
                     </div>
                   </div>
-                  <div className={`flex items-center space-x-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <HiOutlineEye className="w-4 h-4" />
-                    <span>{article.views}</span>
-                  </div>
-                </div>
 
-                {/* Date */}
-                <div className={`mt-3 text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
-                  {article.date}
+                  {/* Date & Read More */}
+                  <div className="flex items-center justify-between mt-4">
+                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {article.date}
+                    </span>
+                    <button
+                      onClick={() => window.open(article.url, '_blank')}
+                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm transition-colors"
+                    >
+                      <span>Read Full Article</span>
+                      <HiOutlineExternalLink className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Image Credit */}
+                  {article.imageData?.photographer && (
+                    <div className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}>
+                      Photo by {article.imageData.photographer}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-          ))}
+              </article>
+            ))}
           </div>
         )}
 
         {/* No Results */}
-        {!isLoading && filteredArticles.length === 0 && (
-          <div className="text-center py-12">
-            <HiOutlineNewspaper className={`w-16 h-16 mx-auto mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
-            <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              No news found
+        {!isLoading && filteredArticles.length === 0 && !error && (
+          <div className="text-center py-16">
+            <HiOutlineNewspaper className={`w-24 h-24 mx-auto mb-6 ${theme === 'dark' ? 'text-gray-700' : 'text-gray-300'}`} />
+            <h3 className={`text-2xl font-bold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              No articles found
             </h3>
-            <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+            <p className={`text-lg mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
               Try adjusting your search or category filters
             </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('all');
+              }}
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+            >
+              Clear All Filters
+            </button>
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Stats Footer */}
         {!isLoading && filteredArticles.length > 0 && (
-          <div className="mt-8 flex flex-col items-center space-y-4">
-            {/* Load More Button */}
-            {hasMore && (
-              <button
-                onClick={handleLoadMore}
-                disabled={isLoadingMore}
-                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  isLoadingMore
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:scale-105'
-                } ${
-                  theme === 'dark'
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {isLoadingMore ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Loading...</span>
-                  </div>
-                ) : (
-                  'Load More Articles'
-                )}
-              </button>
-            )}
-
-            {/* Page Info */}
-            <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              Showing {newsArticles.length} articles
-              {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
-            </div>
-
-            {/* End of Results */}
-            {!hasMore && (
-              <div className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
-                You've reached the end of all available articles
+          <div className={`mt-12 p-6 rounded-2xl ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'} shadow-xl`}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600 mb-2">
+                  {newsArticles.length}
+                </div>
+                <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Total Articles
+                </div>
               </div>
-            )}
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600 mb-2">
+                  {savedArticles.length}
+                </div>
+                <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Saved
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-600 mb-2">
+                  {likedArticles.length}
+                </div>
+                <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Liked
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-orange-600 mb-2">
+                  {categories.length - 1}
+                </div>
+                <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Categories
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -585,4 +563,4 @@ const News = () => {
   );
 };
 
-export default News; 
+export default News;

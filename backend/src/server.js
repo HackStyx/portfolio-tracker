@@ -5,6 +5,7 @@ require('dotenv').config();
 const supabase = require('./config/supabase');
 const stockRoutes = require('./routes/stocks');
 const watchlistRoutes = require('./routes/watchlist');
+const newsRoutes = require('./routes/news');
 const stockPriceService = require('./services/stockPriceService');
 
 const app = express();
@@ -41,6 +42,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/stocks', stockRoutes);
 app.use('/api/watchlist', watchlistRoutes);
+app.use('/api/news', newsRoutes);
 
 const PORT = process.env.PORT || 5000;
 
