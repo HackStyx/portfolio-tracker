@@ -182,7 +182,7 @@ router.get('/:ticker/history', async (req, res) => {
 router.get('/:ticker/quote', async (req, res) => {
   try {
     const { ticker } = req.params;
-    const quote = await stockPriceService.getQuote(ticker);
+    const quote = await stockPriceService.getStockQuote(ticker);
 
     if (!quote) {
       return res.status(404).json({ error: 'Quote not available' });
@@ -475,7 +475,9 @@ router.get('/history/:ticker', async (req, res) => {
     // Generate sample historical data for the last 30 days
     const history = [];
     const today = new Date();
-    let currentPrice = (await stockPriceService.getQuote(ticker))?.currentPrice || 100;
+    const live = await stockPriceService.getStockQuote(ticker);
+    let currentPrice =
+      (live && typeof live.c === 'number' && live.c > 0 ? live.c : null) || 100;
     
     for (let i = 30; i >= 0; i--) {
       const date = new Date(today);

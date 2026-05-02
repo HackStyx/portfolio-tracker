@@ -6,7 +6,7 @@ A modern portfolio tracking application built with React, Vite, and Supabase.
 
 - **Frontend**: [https://portfolio-tracker-hackstyx.vercel.app/](https://portfolio-tracker-hackstyx.vercel.app/)
 - **Backend**: [https://portfolio-tracker-backend-eh7r.onrender.com](https://portfolio-tracker-backend-eh7r.onrender.com)
-- **Database**: Supabase
+- **Database**: Supabase (PostgreSQL)
 
 ## Features
 
@@ -31,7 +31,9 @@ A modern portfolio tracking application built with React, Vite, and Supabase.
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Set up environment variables (see `.env.example`)
+3. Set up environment variables:
+   - Frontend: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_API_BASE_URL`
+   - Backend: `SUPABASE_URL`, `SUPABASE_KEY`, `FINNHUB_API_KEY`
 4. Start development server: `npm run dev`
 
 ## Documentation

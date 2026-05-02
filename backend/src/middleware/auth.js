@@ -1,49 +1,112 @@
-const { createClient } = require('@supabase/supabase-js');
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
 
-// Debug environment variables
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const API_KEY_FOR_AUTH =
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_KEY;
+
 console.log('🔍 Auth Middleware Environment Check:', {
-  hasSupabaseUrl: !!process.env.SUPABASE_URL,
-  hasSupabaseKey: !!process.env.SUPABASE_KEY,
-  supabaseUrl: process.env.SUPABASE_URL ? 'Set' : 'Missing',
-  supabaseKey: process.env.SUPABASE_KEY ? 'Set' : 'Missing'
+  hasSupabaseUrl: !!SUPABASE_URL,
+  hasPrivilegedKey: !!process.env.SUPABASE_KEY,
+  hasApiKeyForAuth: !!API_KEY_FOR_AUTH,
+  hasJwtSecret: !!process.env.SUPABASE_JWT_SECRET,
+  usingExplicitPublicKey: !!(
+    process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY
+  ),
 });
 
-// Create Supabase client for auth verification
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+if (
+  SUPABASE_URL &&
+  API_KEY_FOR_AUTH === process.env.SUPABASE_KEY &&
+  !process.env.SUPABASE_PUBLISHABLE_KEY &&
+  !process.env.SUPABASE_ANON_KEY &&
+  !process.env.SUPABASE_JWT_SECRET
+) {
+  console.warn(
+    'Auth: Add SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY), or SUPABASE_JWT_SECRET from Supabase → Project Settings → API, so stock routes can verify browser sessions.'
+  );
+}
+
+/**
+ * Validates the access token with Supabase Auth (same as Auth "Get user" API).
+ */
+async function fetchUserFromGoTrue(accessToken) {
+  if (!SUPABASE_URL || !API_KEY_FOR_AUTH) return null;
+
+  try {
+    const res = await axios.get(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: API_KEY_FOR_AUTH,
+      },
+      timeout: 10000,
+      validateStatus: () => true,
+    });
+
+    if (res.status === 200 && res.data && typeof res.data.id === 'string') {
+      return res.data;
+    }
+    return null;
+  } catch (e) {
+    console.error('Auth GoTrue request failed:', e.message);
+    return null;
+  }
+}
+
+/**
+ * Offline verification for HS256 access tokens (JWT secret from dashboard).
+ */
+function userFromJwtSecret(accessToken) {
+  const secret = process.env.SUPABASE_JWT_SECRET;
+  if (!secret) return null;
+
+  try {
+    const [headerPart] = accessToken.split('.');
+    if (!headerPart) return null;
+    const header = JSON.parse(
+      Buffer.from(headerPart, 'base64url').toString('utf8')
+    );
+    if (header.alg !== 'HS256') return null;
+
+    const payload = jwt.verify(accessToken, secret, {
+      algorithms: ['HS256'],
+    });
+
+    if (!payload.sub) return null;
+
+    return {
+      id: payload.sub,
+      email: payload.email,
+      aud: payload.aud || 'authenticated',
+      app_metadata: payload.app_metadata || {},
+      user_metadata: payload.user_metadata || {},
+    };
+  } catch {
+    return null;
+  }
+}
 
 const authenticateUser = async (req, res, next) => {
   try {
-    console.log('🔍 Auth Middleware Debug:', {
-      url: req.url,
-      method: req.method,
-      hasAuthHeader: !!req.headers.authorization,
-      authHeaderPreview: req.headers.authorization ? `${req.headers.authorization.substring(0, 30)}...` : 'No header'
-    });
-
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('❌ No valid auth header found');
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    console.log('🔑 Token extracted, length:', token.length);
-    
-    // Verify the JWT token with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    
-    if (error || !user) {
-      console.error('❌ Token verification failed:', error);
+    const token = authHeader.substring(7);
+
+    let user = await fetchUserFromGoTrue(token);
+    if (!user) {
+      user = userFromJwtSecret(token);
+    }
+
+    if (!user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    console.log('✅ User authenticated:', user.id);
-    
-    // Add user to request object
     req.user = user;
     next();
   } catch (error) {
@@ -52,4 +115,4 @@ const authenticateUser = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticateUser }; 
+module.exports = { authenticateUser };

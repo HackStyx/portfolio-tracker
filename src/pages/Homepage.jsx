@@ -27,7 +27,7 @@ const Homepage = () => {
     lastChecked: new Date().toLocaleTimeString()
   });
   const navigate = useNavigate();
-  const { user, signIn, signUp } = useAuth();
+  const { user, loading, signIn, signUp } = useAuth();
 
   // Initialize theme and redirect if user is already logged in
   useEffect(() => {
@@ -35,12 +35,13 @@ const Homepage = () => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    
-    // Redirect to dashboard if user is already logged in
-    if (user) {
-      navigate('/dashboard');
+  }, []);
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   // Close status tooltip when clicking outside
   useEffect(() => {
@@ -68,10 +69,8 @@ const Homepage = () => {
         const { error } = await signIn(formData.email, formData.password);
         if (error) {
           setError(error.message);
-        } else {
-          setSuccess('Successfully signed in!');
-          navigate('/dashboard');
         }
+        // User is set in AuthContext; redirect via useEffect with replace (avoids / ↔ /dashboard flicker)
       } else {
         // Sign up
         const { error } = await signUp(formData.email, formData.password, formData.name);

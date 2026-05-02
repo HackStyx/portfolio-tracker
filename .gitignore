@@ -5,10 +5,13 @@ node_modules/
 
 # Environment files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+backend/.env
+backend/.env.*
+!.env.example
+!.env.*.example
+!backend/.env.example
+!backend/.env.*.example
 .env.railway
 
 # Build files

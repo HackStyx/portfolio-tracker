@@ -13,53 +13,44 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     try {
-      // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
-      
-      console.log('🔍 API Request Debug:', {
-        url: config.url,
-        method: config.method,
-        hasSession: !!session,
-        hasToken: !!session?.access_token,
-        tokenPreview: session?.access_token ? `${session.access_token.substring(0, 20)}...` : 'No token'
-      });
-      
+
       if (session?.access_token) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
-        console.log('✅ Auth token added to request');
-      } else {
-        console.log('❌ No auth token available');
       }
     } catch (error) {
-      console.error('❌ Error getting auth token:', error);
+      console.error('Error getting auth token:', error);
     }
-    
+
     return config;
   },
-  (error) => {
-    console.error('❌ Request interceptor error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Add response interceptor to handle auth errors
 api.interceptors.response.use(
-  (response) => {
-    console.log('✅ API Response success:', response.config.url);
-    return response;
-  },
+  (response) => response,
   async (error) => {
-    console.error('❌ API Response error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.response?.data?.error || error.message
-    });
-    
-    if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
-      console.log('🔐 Authentication failed, redirecting to login...');
-      window.location.href = '/';
+    const status = error.response?.status;
+    const originalConfig = error.config;
+
+    // Avoid infinite loops
+    if (status === 401 && originalConfig && !originalConfig._authRetry) {
+      originalConfig._authRetry = true;
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (!refreshError && refreshData?.session?.access_token) {
+        originalConfig.headers.Authorization = `Bearer ${refreshData.session.access_token}`;
+        return api.request(originalConfig);
+      }
+
+      await supabase.auth.signOut();
+      // Use replace so we don't stack entries; avoid hard reload when already on /
+      if (window.location.pathname !== '/') {
+        window.location.replace(`${window.location.origin}/`);
+      }
     }
+
     return Promise.reject(error);
   }
 );
