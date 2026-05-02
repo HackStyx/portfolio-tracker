@@ -204,34 +204,28 @@ const News = () => {
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#0f0f0f]' : 'bg-gray-50'}`}>
-      {/* Hero Header */}
-      <div className={`${theme === 'dark' ? 'bg-gradient-to-r from-blue-900/50 to-purple-900/50' : 'bg-gradient-to-r from-blue-600 to-purple-600'} shadow-2xl`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="p-4 bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl">
-                <HiOutlineNewspaper className="w-12 h-12 text-white" />
+      {/* Compact Hero Header */}
+      <div className={`${theme === 'dark' ? 'bg-gradient-to-r from-blue-900/50 to-purple-900/50' : 'bg-gradient-to-r from-blue-600 to-purple-600'} shadow-xl`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white/10 backdrop-blur-lg rounded-xl">
+                <HiOutlineNewspaper className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-white mb-2">
+                <h1 className="text-3xl font-bold text-white">
                   Financial News
                 </h1>
-                <p className="text-blue-100 text-lg">
+                <p className="text-blue-100 text-sm">
                   Real-time market insights from multiple sources
                 </p>
-                {lastUpdated && (
-                  <div className="flex items-center mt-2 space-x-2 text-sm text-blue-200">
-                    <HiOutlineClock className="w-4 h-4" />
-                    <span>Updated {lastUpdated.toLocaleTimeString()}</span>
-                  </div>
-                )}
               </div>
             </div>
 
             <button
               onClick={fetchNews}
               disabled={isLoading}
-              className={`px-6 py-3 bg-white/20 backdrop-blur-lg text-white rounded-xl font-medium transition-all duration-200 hover:bg-white/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg`}
+              className={`px-5 py-2.5 bg-white/20 backdrop-blur-lg text-white rounded-lg font-medium transition-all duration-200 hover:bg-white/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2`}
             >
               <HiOutlineRefresh className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
@@ -239,17 +233,15 @@ const News = () => {
           </div>
 
           {/* Search Bar */}
-          <div className="mt-8">
-            <div className="relative max-w-2xl">
-              <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search articles, topics, companies..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full pl-12 pr-4 py-4 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all`}
-              />
-            </div>
+          <div className="relative max-w-2xl">
+            <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search articles, topics, companies..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all`}
+            />
           </div>
         </div>
       </div>
