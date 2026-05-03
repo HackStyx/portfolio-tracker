@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Homepage from './pages/Homepage';
+import ResetPassword from './pages/ResetPassword';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
@@ -52,6 +53,7 @@ export default function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Homepage />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* Protected dashboard routes */}
           <Route path="/dashboard" element={

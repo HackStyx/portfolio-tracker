@@ -26,8 +26,16 @@ const Homepage = () => {
     database: 'operational',
     lastChecked: new Date().toLocaleTimeString()
   });
+
+  // Forgot Password modal state
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotStep, setForgotStep] = useState(1); // 1 = form, 2 = success
+
   const navigate = useNavigate();
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn, signUp, resetPassword } = useAuth();
 
   // Initialize theme and redirect if user is already logged in
   useEffect(() => {
@@ -104,6 +112,41 @@ const Homepage = () => {
     window.dispatchEvent(new CustomEvent('themeChange', { 
       detail: { theme: newTheme } 
     }));
+  };
+
+  const openForgotPassword = () => {
+    setForgotEmail('');
+    setForgotError('');
+    setForgotStep(1);
+    setIsForgotOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeForgotPassword = () => {
+    setIsForgotOpen(false);
+    document.body.style.overflow = 'unset';
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setForgotError('Please enter your email address.');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const { error } = await resetPassword(forgotEmail.trim());
+      if (error) {
+        setForgotError(error.message || 'Failed to send reset email. Please try again.');
+      } else {
+        setForgotStep(2);
+      }
+    } catch {
+      setForgotError('An unexpected error occurred. Please try again.');
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   // Blog data
@@ -841,7 +884,8 @@ const Homepage = () => {
                   </label>
                   <button
                     type="button"
-                    className={`text-sm ${theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}
+                    onClick={openForgotPassword}
+                    className={`text-sm font-medium transition-colors duration-200 ${theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}
                   >
                     Forgot password?
                   </button>
@@ -1556,6 +1600,272 @@ const Homepage = () => {
           </div>
         </div>
       </footer>
+
+      {/* ── Forgot Password Modal ── */}
+      {isForgotOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            onClick={closeForgotPassword}
+          />
+
+          {/* Modal card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: 30 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className={`relative w-full max-w-md rounded-3xl shadow-2xl overflow-hidden ${
+              theme === 'dark'
+                ? 'bg-[#111827] border border-gray-700/60'
+                : 'bg-white border border-gray-200'
+            }`}
+          >
+            {/* Decorative top gradient strip */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500" />
+
+            {/* Glow orb behind icon */}
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+
+            <div className="px-8 pt-10 pb-8">
+              {/* Close button */}
+              <button
+                onClick={closeForgotPassword}
+                className={`absolute top-5 right-5 p-1.5 rounded-xl transition-all duration-200 ${
+                  theme === 'dark'
+                    ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* ── STEP 1: Email form ── */}
+              {forgotStep === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {/* Icon */}
+                  <div className="flex justify-center mb-6">
+                    <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-br from-blue-600/30 to-purple-600/30 border border-blue-500/30'
+                        : 'bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100'
+                    }`}>
+                      <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                          d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <h2 className={`text-2xl font-bold text-center mb-2 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Forgot your password?
+                  </h2>
+                  <p className={`text-sm text-center mb-7 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    No worries! Enter your email and we'll send you a secure reset link right away.
+                  </p>
+
+                  {/* Error */}
+                  {forgotError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex items-start gap-3 p-4 rounded-xl mb-5 text-sm ${
+                        theme === 'dark'
+                          ? 'bg-red-900/25 border border-red-700/50 text-red-400'
+                          : 'bg-red-50 border border-red-200 text-red-600'
+                      }`}
+                    >
+                      <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {forgotError}
+                    </motion.div>
+                  )}
+
+                  <form onSubmit={handleForgotSubmit} className="space-y-5">
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Email address
+                      </label>
+                      <div className="relative">
+                        <svg className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-400'
+                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <input
+                          type="email"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          autoFocus
+                          className={`w-full pl-11 pr-4 py-3.5 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-4 text-sm ${
+                            theme === 'dark'
+                              ? 'bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
+                              : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/15 focus:bg-white'
+                          }`}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={forgotLoading}
+                      className={`w-full py-3.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 shadow-lg hover:shadow-blue-500/25 ${
+                        forgotLoading
+                          ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-[0.98]'
+                      }`}
+                    >
+                      {forgotLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Sending reset link...
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                          Send Reset Link
+                        </span>
+                      )}
+                    </button>
+                  </form>
+
+                  <button
+                    onClick={closeForgotPassword}
+                    className={`mt-5 w-full text-sm text-center transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    ← Back to Sign In
+                  </button>
+                </motion.div>
+              )}
+
+              {/* ── STEP 2: Success confirmation ── */}
+              {forgotStep === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+                  className="text-center"
+                >
+                  {/* Animated checkmark circle */}
+                  <div className="flex justify-center mb-6">
+                    <div className="relative">
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+                        className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center shadow-xl shadow-emerald-500/30"
+                      >
+                        <motion.svg
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 0.5, delay: 0.3 }}
+                          className="w-12 h-12 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                        >
+                          <motion.path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </motion.svg>
+                      </motion.div>
+                      {/* Pulse ring */}
+                      <div className="absolute inset-0 rounded-full bg-emerald-400/20 animate-ping" />
+                    </div>
+                  </div>
+
+                  <h2 className={`text-2xl font-bold mb-3 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Check your inbox!
+                  </h2>
+                  <p className={`text-sm mb-2 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
+                    We've sent a password reset link to
+                  </p>
+                  <p className={`text-sm font-semibold mb-6 px-4 py-2 rounded-xl inline-block ${
+                    theme === 'dark'
+                      ? 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                      : 'bg-blue-50 text-blue-700 border border-blue-100'
+                  }`}>
+                    {forgotEmail}
+                  </p>
+
+                  {/* Tips */}
+                  <div className={`text-left rounded-2xl p-4 mb-6 space-y-2 ${
+                    theme === 'dark'
+                      ? 'bg-gray-800/70 border border-gray-700/60'
+                      : 'bg-gray-50 border border-gray-100'
+                  }`}>
+                    {[
+                      'The link will expire in 24 hours.',
+                      'Check your spam/junk folder if you don't see it.',
+                      'Click the link in the email to set a new password.',
+                    ].map((tip, i) => (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <svg className="w-4 h-4 mt-0.5 shrink-0 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => { setForgotStep(1); setForgotEmail(''); }}
+                    className={`w-full py-3 rounded-xl text-sm font-medium mb-3 border-2 transition-all duration-200 hover:scale-[1.01] ${
+                      theme === 'dark'
+                        ? 'border-gray-700 text-gray-300 hover:bg-gray-800 hover:border-gray-600'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    Send to a different email
+                  </button>
+                  <button
+                    onClick={closeForgotPassword}
+                    className="w-full py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-[1.01] shadow-lg shadow-blue-500/20"
+                  >
+                    Done
+                  </button>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Blog Modal */}
       {isBlogModalOpen && selectedBlog && (
